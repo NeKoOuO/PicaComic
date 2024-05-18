@@ -1,15 +1,6 @@
 part of pica_settings;
 
 Widget buildExploreSettings(BuildContext context, bool popUp) {
-  var searchSource = ["Picacg", "ehentai", "禁漫天堂".tl, "hitomi", "绅士漫画".tl, "nhentai"];
-  for(var source in ComicSource.sources){
-    searchSource.add(source.name);
-  }
-  if(int.parse(appdata.settings[63]) >= searchSource.length){
-    appdata.settings[63] = "0";
-    appdata.updateSettings();
-  }
-
   return Column(
     children: [
       SettingsTitle("显示".tl),
@@ -57,7 +48,7 @@ Widget buildExploreSettings(BuildContext context, bool popUp) {
       SelectSetting(
         title: "默认搜索源".tl,
         settingsIndex: 63,
-        options: searchSource,
+        options: ["Picacg", "EHentai", "禁漫天堂".tl, "hitomi", "绅士漫画".tl, "nhentai"],
         icon: const Icon(Icons.search),
       ),
       SwitchSetting(

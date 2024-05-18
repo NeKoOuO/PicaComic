@@ -193,7 +193,7 @@ class JmComicInfo {
         epNames = List.from(map["epNames"] ?? []);
 
   JmComicBrief toBrief() =>
-      JmComicBrief(id, author.firstOrNull ?? "", name, description, [], tags, ignoreExamination: true);
+      JmComicBrief(id, author.firstOrNull ?? "", name, description, [], tags);
 }
 
 class Comment {

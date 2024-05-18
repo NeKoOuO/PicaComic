@@ -12,9 +12,7 @@ class FavoriteData{
   final Future<Res<List<BaseComic>>> Function(int page, [String? folder]) loadComic;
 
   /// key-id, value-name
-  ///
-  /// if comicId is not null, Res.subData is the folders that the comic is in
-  final Future<Res<Map<String, String>>> Function([String? comicId])? loadFolders;
+  final Future<Res<Map<String, String>>> Function()? loadFolders;
 
   /// A value of null disables this feature
   final Future<Res<bool>> Function(String key)? deleteFolder;

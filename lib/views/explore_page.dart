@@ -240,16 +240,12 @@ class _ExplorePageState extends State<ExplorePage>
                   location = current;
                   return true;
                 },
-                child: MediaQuery.removePadding(
-                  context: context,
-                  removeTop: true,
-                  child: TabBarView(
-                    controller: controller,
-                    children: appdata.settings[77]
-                        .split(',')
-                        .map((e) => buildBody(e))
-                        .toList(),
-                  ),
+                child: TabBarView(
+                  controller: controller,
+                  children: appdata.settings[77]
+                      .split(',')
+                      .map((e) => buildBody(e))
+                      .toList(),
                 ),
               ),
             )

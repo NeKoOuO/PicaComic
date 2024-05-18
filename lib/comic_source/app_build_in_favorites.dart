@@ -32,7 +32,7 @@ final jmFavorites = FavoriteData(
     title: "禁漫天堂",
     multiFolder: true,
     loadComic: (i, [folder]) => JmNetwork().getFolderComicsPage(folder!, i),
-    loadFolders: ([String? comicId]) => JmNetwork().getFolders(),
+    loadFolders: () => JmNetwork().getFolders(),
     deleteFolder: (id) => JmNetwork().deleteFolder(id),
     addFolder: (name) => JmNetwork().createFolder(name),
     allFavoritesId: "0",
@@ -48,7 +48,7 @@ final htFavorites = FavoriteData(
     title: "绅士漫画",
     multiFolder: true,
     loadComic: (i, [folder]) => HtmangaNetwork().getFavoriteFolderComics(folder!, i),
-    loadFolders: ([String? comicId]) => HtmangaNetwork().getFolders(),
+    loadFolders: () => HtmangaNetwork().getFolders(),
     allFavoritesId: "0",
     deleteFolder: (id) async{
       var res = await HtmangaNetwork().deleteFolder(id);

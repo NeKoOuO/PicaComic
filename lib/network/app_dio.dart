@@ -31,30 +31,21 @@ class MyLogInterceptor implements Interceptor {
           err = err.copyWith(message: "Connection terminated during handshake: "
               "This may be caused by the firewall blocking the connection "
               "or your requests are too frequent.");
-        } else if (err.toString().contains("Connection reset by peer")) {
-          err = err.copyWith(message: "Connection reset by peer: "
-              "The error is unrelated to app, please check your network.");
         }
       default: {}
     }
     handler.next(err);
   }
 
-  static const errorMessages = <int, String>{
-    400: "The Request is invalid.",
-    401: "The Request is unauthorized.",
-    403: "No permission to access the resource. Check your account or network.",
-    404: "Not found.",
-    429: "Too many requests. Please try again later.",
-  };
-
   String _getStatusCodeInfo(int? statusCode){
-    if(statusCode != null && statusCode >= 500) {
+    if(statusCode == 403){
+      return "This may be caused by your IP being blocked by the server "
+          "or the server does not trust the client.";
+    } else if(statusCode != null && statusCode >= 500) {
       return "This is server-side error, please try again later. "
           "Do not report this issue.";
-    } else {
-      return errorMessages[statusCode] ?? "";
     }
+    return "";
   }
 
   @override

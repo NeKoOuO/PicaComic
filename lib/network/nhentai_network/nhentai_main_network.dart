@@ -68,7 +68,7 @@ class NhentaiNetwork {
         followRedirects: url.contains("random") ? false : true));
     dio.interceptors.add(CookieManagerSql(cookieJar!));
     try {
-      var res = await dio.get<String>(url);
+      var res = await dio.get(url);
       if(res.statusCode == 302){
         return Res(res.headers["Location"]?.first ?? res.headers["location"]?.first ?? "");
       }

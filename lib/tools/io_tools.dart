@@ -3,13 +3,15 @@ import 'dart:io';
 import 'dart:isolate';
 
 import 'package:file_selector/file_selector.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_file_dialog/flutter_file_dialog.dart';
 import 'package:pica_comic/base.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:pica_comic/foundation/cache_manager.dart';
 import 'package:pica_comic/foundation/history.dart';
+import 'package:pica_comic/foundation/image_manager.dart';
 import 'package:pica_comic/foundation/log.dart';
+import 'package:pica_comic/network/cache_network.dart';
 import 'package:pica_comic/network/download.dart';
 import 'package:pica_comic/network/download_model.dart';
 import 'package:pica_comic/network/htmanga_network/htmanga_main_network.dart';
@@ -229,7 +231,9 @@ Future<double> calculateCacheSize() async {
 }
 
 Future<void> eraseCache() async {
-  return CacheManager().clear();
+  imageCache.clear();
+  await ImageManager().clear();
+  await CachedNetwork.clearCache();
 }
 
 Future<void> copyDirectory(Directory source, Directory destination) async {
@@ -559,16 +563,4 @@ Future<String?> getDataFromUserSelectedFile(List<String> extensions) async {
 
 extension FileExtension on File {
   String get name => uri.pathSegments.last;
-}
-
-String bytesLengthToReadableSize(int size) {
-  if (size < 1024) {
-    return "$size B";
-  } else if (size < 1024 * 1024) {
-    return "${(size / 1024).toStringAsFixed(2)} KB";
-  } else if (size < 1024 * 1024 * 1024){
-    return "${(size / 1024 / 1024).toStringAsFixed(2)} MB";
-  } else {
-    return "${(size / 1024 / 1024 / 1024).toStringAsFixed(2)} GB";
-  }
 }

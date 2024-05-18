@@ -26,7 +26,7 @@ class EhGalleryBrief extends BaseComic{
       }
     }
     if(block){
-      throw Exception("Comic blocked");
+      throw Error();
     }
   }
 
@@ -94,8 +94,7 @@ class Gallery{
       coverPath,
       stars,
       link,
-      _generateTags(),
-      ignoreExamination: true
+      _generateTags()
   );
 
   Map<String, dynamic> toJson() {

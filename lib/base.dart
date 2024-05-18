@@ -1,7 +1,3 @@
-import 'dart:convert';
-import 'dart:io';
-
-import 'package:pica_comic/foundation/app.dart';
 import 'package:pica_comic/network/eh_network/eh_main_network.dart';
 import 'package:pica_comic/network/jm_network/jm_network.dart';
 import 'package:pica_comic/network/picacg_network/methods.dart';
@@ -117,8 +113,6 @@ class Appdata {
     "0,2,3,4,5,6,7,8", //77 探索页面
     "0", //78 已下载的eh漫画优先显示副标题
     "6", //79 下载并行
-    "1", //80 启动时检查自定义漫画源的更新
-    "1", //81 使用深色背景
   ];
 
   /// 隐式数据, 用于存储一些不需要用户设置的数据, 此数据通常为某些组件的状态, 此设置不应当被同步
@@ -227,30 +221,9 @@ class Appdata {
     await s.setStringList("settings", settings);
   }
 
-  Future<void> readSettings(SharedPreferences s) async {
-    var settingsFile = File("${App.dataPath}/settings");
-    List<String> st;
-    if(settingsFile.existsSync()) {
-      var json = jsonDecode(await settingsFile.readAsString());
-      if(json is List){
-        st = List.from(json);
-      } else {
-        st = [];
-      }
-    } else {
-      st = s.getStringList("settings") ?? [];
-    }
-    for (int i = 0; i < st.length && i < settings.length; i++) {
-      settings[i] = st[i];
-    }
-    if (settings[26].length < 2) {
-      settings[26] += "0";
-    }
-  }
-
-  Future<void> updateSettings([bool syncData = true]) async {
-    var settingsFile = File("${App.dataPath}/settings");
-    await settingsFile.writeAsString(jsonEncode(settings));
+  void updateSettings([bool syncData = true]) async {
+    var s = await SharedPreferences.getInstance();
+    await s.setStringList("settings", settings);
     if(syncData) {
       Webdav.uploadData();
     }
@@ -281,7 +254,7 @@ class Appdata {
     await s.setInt("userExp", user.exp);
     await s.setString("userTitle", user.title);
     await s.setString("appChannel", appChannel);
-    await updateSettings();
+    await s.setStringList("settings", settings);
     await s.setStringList("blockingKeyword", blockingKeyword);
     await s.setStringList("firstUse", firstUse);
     await s.setString("image", imageQuality);
@@ -305,7 +278,15 @@ class Appdata {
       user.avatarUrl = s.getString("userAvatar") ?? defaultAvatarUrl;
       user.id = s.getString("userId") ?? "";
       user.exp = s.getInt("userExp") ?? 0;
-      await readSettings(s);
+      if (s.getStringList("settings") != null) {
+        var st = s.getStringList("settings")!;
+        for (int i = 0; i < st.length && i < settings.length; i++) {
+          settings[i] = st[i];
+        }
+      }
+      if (settings[26].length < 2) {
+        settings[26] += "0";
+      }
       appChannel = s.getString("appChannel") ?? "3";
       searchHistory = s.getStringList("search") ?? [];
       favoriteTags = (s.getStringList("favoriteTags") ?? []).toSet();
@@ -386,10 +367,6 @@ var notifications = Notifications();
 Future<void> clearAppdata() async {
   var s = await SharedPreferences.getInstance();
   await s.clear();
-  var settingsFile = File("${App.dataPath}/settings");
-  if(await settingsFile.exists()) {
-    await settingsFile.delete();
-  }
   appdata.history.clearHistory();
   appdata = Appdata();
   await appdata.readData();

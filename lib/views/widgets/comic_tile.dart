@@ -142,7 +142,7 @@ abstract class ComicTile extends StatelessWidget {
             outline: true,
             width: 156,
             values: LocalFavoritesManager().folderNames,
-            initialValue: LocalFavoritesManager().folderNames.indexOf(appdata.settings[51]),
+            initialValue: null,
             whenChange: (i) => folder = LocalFavoritesManager().folderNames[i],
           ),
         ),

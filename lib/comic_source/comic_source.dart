@@ -3,12 +3,14 @@ library comic_source;
 import 'dart:collection';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 import 'dart:math' as math;
 
 import 'package:pica_comic/foundation/app.dart';
 import 'package:pica_comic/foundation/log.dart';
 import 'package:pica_comic/network/update.dart';
 import 'package:pica_comic/tools/extensions.dart';
+import 'package:toml/toml.dart';
 
 import '../foundation/def.dart';
 import '../foundation/js_engine.dart';
@@ -36,8 +38,6 @@ typedef CommentsLoader = Future<Res<List<Comment>>>
 typedef SendCommentFunc = Future<Res<bool>>
     Function(String id, String? subId, String content, String? replyTo);
 
-typedef GetImageLoadingConfigFunc = Map<String, dynamic> Function(String imageKey, String comicId, String epId)?;
-
 class ComicSource {
   static List<ComicSource> sources = [];
 
@@ -54,9 +54,10 @@ class ComicSource {
       return;
     }
     await for (var entity in Directory(path).list()) {
-      if (entity is File && entity.path.endsWith(".js")) {
+      if (entity is File && entity.path.endsWith(".toml")) {
         try {
-          var source = await ComicSourceParser().parse(
+          var source =
+          await ComicSourceParser().parse(
               await entity.readAsString(), entity.absolute.path);
           sources.add(source);
         }
@@ -69,7 +70,6 @@ class ComicSource {
 
   static reload() async{
     sources.clear();
-    JsEngine().runCode("ComicSource.sources = {};");
     await init();
   }
 
@@ -110,7 +110,10 @@ class ComicSource {
   /// Load comic pages.
   final LoadComicPagesFunc? loadComicPages;
 
-  final Map<String, dynamic> Function(String imageKey, String comicId, String epId)? getImageLoadingConfig;
+  /// Load image. The imageKey usually is the url of image.
+  ///
+  /// Default is send a http get request to [imageKey].
+  final Future<Uint8List>? Function(String imageKey)? loadImage;
 
   final String? matchBriefIdReg;
 
@@ -135,23 +138,12 @@ class ComicSource {
     }
   }
 
-  bool _isSaving = false;
-  bool _haveWaitingTask = false;
-
   Future<void> saveData() async {
-    if(_haveWaitingTask)  return;
-    while(_isSaving) {
-      _haveWaitingTask = true;
-      await Future.delayed(const Duration(milliseconds: 20));
-      _haveWaitingTask = false;
-    }
-    _isSaving = true;
     var file = File("${App.dataPath}/comic_source/$key.data");
     if (!await file.exists()) {
       await file.create(recursive: true);
     }
     await file.writeAsString(jsonEncode(data));
-    _isSaving = false;
   }
 
   Future<bool> reLogin() async{
@@ -160,7 +152,11 @@ class ComicSource {
     }
     final List accountData = data["account"];
     var res = await account!.login!(accountData[0], accountData[1]);
-    return !res.error;
+    if (res.error) {
+      return false;
+    } else {
+      return true;
+    }
   }
 
   ComicSource(
@@ -175,7 +171,7 @@ class ComicSource {
       this.settings,
       this.loadComicInfo,
       this.loadComicPages,
-      this.getImageLoadingConfig,
+      this.loadImage,
       this.matchBriefIdReg,
       this.filePath,
       this.url,
@@ -194,7 +190,7 @@ class ComicSource {
         settings = [],
         loadComicInfo = null,
         loadComicPages = null,
-        getImageLoadingConfig = null,
+        loadImage = null,
         matchBriefIdReg = null,
         filePath = "",
         url = "",
@@ -210,10 +206,12 @@ class AccountConfig {
 
   final String? registerWebsite;
 
-  final void Function() logout;
+  final List<String> logoutDeleteCookies;
+
+  final List<String> logoutDeleteData;
 
   const AccountConfig(this.login, this.loginWebsite, this.registerWebsite,
-      this.logout);
+      this.logoutDeleteCookies, this.logoutDeleteData);
 }
 
 class LoadImageRequest {
@@ -379,17 +377,7 @@ class CategoryComicsData {
   /// [Res.subData] should be maxPage or null if there is no limit.
   final CategoryComicsLoader load;
 
-  final RankingData? rankingData;
-
-  const CategoryComicsData(this.options, this.load, {this.rankingData});
-}
-
-class RankingData{
-  final Map<String, String> options;
-
-  final Future<Res<List<BaseComic>>> Function(String option, int page) load;
-
-  const RankingData(this.options, this.load);
+  const CategoryComicsData(this.options, this.load);
 }
 
 class CategoryComicsOptions{
@@ -401,9 +389,7 @@ class CategoryComicsOptions{
   /// If [notShowWhen] contains category's name, the option will not be shown.
   final List<String> notShowWhen;
 
-  final List<String>? showWhen;
-
-  const CategoryComicsOptions(this.options, this.notShowWhen, this.showWhen);
+  const CategoryComicsOptions(this.options, this.notShowWhen);
 }
 
 class Comment{

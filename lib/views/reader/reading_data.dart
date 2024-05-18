@@ -60,11 +60,9 @@ abstract class ReadingData {
     if (downloaded && checkEpDownloaded(ep)){
       return FileImageProvider(downloadId, hasEp ? ep : 0, page);
     } else {
-      return StreamImageProvider(() => loadImage(ep, page, url), buildImageKey(ep, page, url));
+      return StreamImageProvider(() => loadImage(ep, page, url), "$id$ep$page");
     }
   }
-
-  String buildImageKey(int ep, int page, String url) => url;
 
   Future<Res<List<String>>> loadEpNetwork(int ep);
 
@@ -142,9 +140,6 @@ class EhReadingData extends ReadingData {
 
   @override
   String get title => gallery.title;
-
-  @override
-  String buildImageKey(int ep, int page, String url) => "${gallery.link}$page";
 }
 
 class JmReadingData extends ReadingData {
@@ -203,9 +198,6 @@ class JmReadingData extends ReadingData {
 
   @override
   final Map<String, String> eps;
-
-  @override
-  String buildImageKey(int ep, int page, String url) => url.replaceAll(RegExp(r"\?.+"), "");
 }
 
 class HitomiReadingData extends ReadingData {
@@ -248,9 +240,6 @@ class HitomiReadingData extends ReadingData {
   Stream<DownloadProgress> loadImageNetwork(int ep, int page, String url) {
     return ImageManager().getHitomiImage(images[page], id);
   }
-
-  @override
-  String buildImageKey(int ep, int page, String url) => images[page].hash;
 }
 
 class HtReadingData extends ReadingData {
@@ -354,12 +343,7 @@ class CustomReadingData extends ReadingData{
 
   @override
   Stream<DownloadProgress> loadImageNetwork(int ep, int page, String url) {
-    return ImageManager().getCustomImage(
-        url,
-        id,
-        eps?.keys.elementAtOrNull(ep-1) ?? id,
-        sourceKey
-    );
+    return ImageManager().getImage(url);
   }
 
   @override
@@ -368,7 +352,4 @@ class CustomReadingData extends ReadingData{
   @override
   ComicType get type => ComicType.other;
 
-  @override
-  String buildImageKey(int ep, int page, String url) =>
-      "$sourceKey$id${eps!.keys.elementAtOrNull(ep-1) ?? id}$url";
 }

@@ -183,9 +183,6 @@ class CustomComicPage extends ComicPage<ComicInfoData> {
         if (!(comicSource!.favoriteData?.multiFolder ?? false))
           '0': comicSource!.name
       },
-      foldersLoader: comicSource?.favoriteData?.loadFolders == null
-        ? null
-        : () => comicSource!.favoriteData!.loadFolders!(data!.comicId),
       initialFolder:
           (comicSource!.favoriteData?.multiFolder ?? false) ? null : '0',
       target: id,
@@ -195,7 +192,6 @@ class CustomComicPage extends ComicPage<ComicInfoData> {
           update();
         }
       },
-      favoriteOnPlatform: data!.isFavorite,
       selectFolderCallback: (folder, type) {
         if (type == 1) {
           LocalFavoritesManager().addComic(folder, toLocalFavoriteItem());
@@ -216,18 +212,6 @@ class CustomComicPage extends ComicPage<ComicInfoData> {
       cancelPlatformFavorite: () {
         showMessage(context, "正在取消收藏".tl);
         comicSource!.favoriteData!.addOrDelFavorite!(id, '0', false)
-            .then((value) {
-          hideMessage(context);
-          if (value.error) {
-            showMessage(context, "取消收藏失败".tl);
-          } else {
-            showMessage(context, "成功取消收藏".tl);
-          }
-        });
-      },
-      cancelPlatformFavoriteWithFolder: (folder) {
-        showMessage(context, "正在取消收藏".tl);
-        comicSource!.favoriteData!.addOrDelFavorite!(id, folder, false)
             .then((value) {
           hideMessage(context);
           if (value.error) {
@@ -298,9 +282,6 @@ class _CommentsPageState extends State<_CommentsPage> {
       setState(() {
         _comments!.addAll(res.data);
         _page++;
-        if(maxPage == null && res.data.isEmpty) {
-          maxPage = _page;
-        }
       });
     }
   }
@@ -328,7 +309,7 @@ class _CommentsPageState extends State<_CommentsPage> {
               itemCount: _comments!.length + 1,
               itemBuilder: (context, index) {
                 if (index == _comments!.length) {
-                  if (_page < (maxPage ?? _page+1)) {
+                  if (_page < maxPage!) {
                     loadMore();
                     return const ListLoadingIndicator();
                   } else {

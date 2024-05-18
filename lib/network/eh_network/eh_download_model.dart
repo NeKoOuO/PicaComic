@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:isolate';
 import 'dart:typed_data';
 import 'package:pica_comic/base.dart';
-import 'package:pica_comic/foundation/cache_manager.dart';
 import 'package:pica_comic/foundation/log.dart';
 import 'package:pica_comic/network/eh_network/eh_models.dart';
 import 'package:pica_comic/network/download_model.dart';
@@ -12,6 +11,7 @@ import 'package:pica_comic/network/http_client.dart';
 import 'package:zip_flutter/zip_flutter.dart';
 import 'dart:io';
 import '../../tools/io_tools.dart';
+import '../cache_network.dart';
 import 'eh_main_network.dart';
 import 'get_gallery_id.dart';
 
@@ -152,8 +152,7 @@ class EhDownloadingItem extends DownloadingItem{
     // clear showKey and imageKey
     // imageKey is saved through the network cache mechanism
     gallery.auth?.remove("showKey");
-    await CacheManager().deleteKeyword("exhentai.org");
-    await CacheManager().deleteKeyword("e-hentai.org");
+    await CachedNetwork.clearCache();
   }
 
   int? _currentBytes;

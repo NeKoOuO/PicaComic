@@ -5,7 +5,6 @@ import "package:pica_comic/network/res.dart";
 import "package:pica_comic/views/page_template/comics_page.dart";
 
 import "../../network/base_comic.dart";
-import "../widgets/appbar.dart";
 import "custom_comic_tile.dart";
 
 class CategoryComicsPage extends StatefulWidget {
@@ -31,14 +30,8 @@ class _CategoryComicsPageState extends State<CategoryComicsPage> {
     for(final source in ComicSource.sources){
       if(source.categoryData?.key == widget.sourceKey){
         data = source.categoryComicsData!;
-        options = data.options.where((element) {
-          if(element.notShowWhen.contains(widget.category)) {
-            return false;
-          } else if(element.showWhen != null){
-            return element.showWhen!.contains(widget.category);
-          }
-          return true;
-        }).toList();
+        options = data.options.where((element) =>
+          !element.notShowWhen.contains(widget.category)).toList();
         optionsValue = options.map((e) => e.options.keys.first).toList();
         return;
       }
@@ -55,7 +48,7 @@ class _CategoryComicsPageState extends State<CategoryComicsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: CustomAppbar(
+      appBar: AppBar(
         title: Text(widget.category),
       ),
       body: Column(
