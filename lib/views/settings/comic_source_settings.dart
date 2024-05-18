@@ -5,6 +5,45 @@ class ComicSourceSettings extends StatefulWidget {
 
   @override
   State<ComicSourceSettings> createState() => _ComicSourceSettingsState();
+
+  static void checkCustomComicSourceUpdate([bool showLoading = false]) async{
+    if(ComicSource.sources.isEmpty){
+      return;
+    }
+    var controller = showLoading ? showLoadingDialog(App.globalContext!, () {}) : null;
+    var dio = logDio();
+    var res = await dio.get<String>("https://raw.githubusercontent.com/wgh136/pica_configs/master/index.json");
+    if(res.statusCode != 200) {
+      showToast(message: "网络错误".tl);
+      return;
+    }
+    var list = jsonDecode(res.data!) as List;
+    var versions = <String, String>{};
+    for(var source in list) {
+      versions[source['key']] = source['version'];
+    }
+    var shouldUpdate = <String>[];
+    for(var source in ComicSource.sources) {
+      if(versions.containsKey(source.key) && versions[source.key] != source.version){
+        shouldUpdate.add(source.key);
+      }
+    }
+    controller?.close();
+    if(shouldUpdate.isEmpty){
+      return;
+    }
+    var msg = "";
+    for(var key in shouldUpdate){
+      msg += "${ComicSource.find(key)?.name}: v${versions[key]}\n";
+    }
+    msg = msg.trim();
+    showConfirmDialog(App.globalContext!, "有可用更新".tl, msg, () {
+      for(var key in shouldUpdate){
+        var source = ComicSource.find(key);
+        _ComicSourceSettingsState.update(source!);
+      }
+    });
+  }
 }
 
 class _ComicSourceSettingsState extends State<ComicSourceSettings> {
@@ -22,9 +61,32 @@ class _ComicSourceSettingsState extends State<ComicSourceSettings> {
         const JmSettings(false),
         const Divider(),
         const HtSettings(false),
+        const Divider(),
+        buildCustomSettings(),
         for(var source in ComicSource.sources)
           buildCustom(context, source),
         Padding(padding: EdgeInsets.only(bottom: MediaQuery.of(context).padding.bottom))
+      ],
+    );
+  }
+
+  Widget buildCustomSettings(){
+    return Column(
+      children: [
+        ListTile(
+          title: Text("自定义漫画源".tl),
+        ),
+        ListTile(
+          leading: const Icon(Icons.update_outlined),
+          title: Text("检查更新".tl),
+          onTap: () => ComicSourceSettings.checkCustomComicSourceUpdate(true),
+          trailing: const Icon(Icons.arrow_right),
+        ),
+        SwitchSetting(
+          title: "启动时检查更新".tl,
+          icon: const Icon(Icons.security_update),
+          settingsIndex: 80,
+        )
       ],
     );
   }
@@ -90,7 +152,7 @@ class _ComicSourceSettingsState extends State<ComicSourceSettings> {
     }
   }
 
-  void update(ComicSource source) async{
+  static void update(ComicSource source) async{
     ComicSource.sources.remove(source);
     if (!source.url.isURL) {
       showMessage(null, "Invalid url config");
@@ -125,9 +187,9 @@ class _ComicSourceSettingsState extends State<ComicSourceSettings> {
       ),
       child: SizedBox(
         width: double.infinity,
-        height: 184,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(title: Text("添加漫画源".tl), leading: const Icon(Icons.dashboard_customize),),
             TextField(
@@ -147,13 +209,13 @@ class _ComicSourceSettingsState extends State<ComicSourceSettings> {
                 TextButton(onPressed: chooseFile, child: Text("选择文件".tl)).paddingLeft(8),
                 const Spacer(),
                 TextButton(onPressed: (){
-                  launchUrlString("https://github.com/wgh136/pica_configs/tree/master");
+                  showPopUpWidget(context, _ComicSourceList(handleAddSource));
                 }, child: Text("浏览列表".tl)),
                 const Spacer(),
                 TextButton(onPressed: help, child: Text("查看帮助".tl)).paddingRight(8),
               ],
             ),
-
+            const SizedBox(height: 8),
           ],
         ),
       ),
@@ -162,7 +224,7 @@ class _ComicSourceSettingsState extends State<ComicSourceSettings> {
 
   void chooseFile() async{
     const XTypeGroup typeGroup = XTypeGroup(
-      extensions: <String>['toml'],
+      extensions: <String>['js'],
     );
     final XFile? file =
         await openFile(acceptedTypeGroups: <XTypeGroup>[typeGroup]);
@@ -179,7 +241,7 @@ class _ComicSourceSettingsState extends State<ComicSourceSettings> {
     launchUrlString("https://github.com/wgh136/PicaComic/blob/master/doc/comic_source.md");
   }
 
-  void handleAddSource(String url) async{
+  Future<void> handleAddSource(String url) async{
     if (url.isEmpty) {
       return;
     }
@@ -201,12 +263,12 @@ class _ComicSourceSettingsState extends State<ComicSourceSettings> {
     }
   }
 
-  Future<void> addSource(String toml, String fileName) async{
-    var comicSource = await ComicSourceParser().createAndParse(toml, fileName);
+  Future<void> addSource(String js, String fileName) async{
+    var comicSource = await ComicSourceParser().createAndParse(js, fileName);
     ComicSource.sources.add(comicSource);
     var explorePages = appdata.settings[77].split(',');
     for(var page in comicSource.explorePages){
-      if(!explorePages.contains(page)){
+      if(!explorePages.contains(page.title)){
         explorePages.add(page.title);
       }
     }
@@ -227,5 +289,78 @@ class _ComicSourceSettingsState extends State<ComicSourceSettings> {
     }
     appdata.updateSettings();
     MyApp.updater?.call();
+  }
+}
+
+class _ComicSourceList extends StatefulWidget {
+  const _ComicSourceList(this.onAdd);
+
+  final Future<void> Function(String) onAdd;
+
+  @override
+  State<_ComicSourceList> createState() => _ComicSourceListState();
+}
+
+class _ComicSourceListState extends State<_ComicSourceList> {
+  bool loading = true;
+  List? json;
+  
+  void load() async{
+    var dio = logDio();
+    var res = await dio.get<String>("https://raw.githubusercontent.com/wgh136/pica_configs/master/index.json");
+    if(res.statusCode != 200) {
+      showToast(message: "网络错误".tl);
+      return;
+    }
+    setState(() {
+      json = jsonDecode(res.data!);
+      loading = false;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text("漫画源".tl),
+        actions: const [
+          IconButton(onPressed: App.globalBack, icon: Icon(Icons.close)),
+        ],
+      ),
+      body: buildBody(),
+    );
+  }
+
+  Widget buildBody(){
+    if(loading) {
+      load();
+      return const Center(child: CircularProgressIndicator());
+    } else {
+      var currentKey = ComicSource.sources.map((e) => e.key).toList();
+      return ListView.builder(
+        itemCount: json!.length,
+        itemBuilder: (context, index) {
+          var key = json![index]["key"];
+          var action = currentKey.contains(key)
+              ? const Icon(Icons.check)
+              : Tooltip(
+                message: "Add",
+                child: IconButton(
+                  icon: const Icon(Icons.add),
+                  onPressed: () async{
+                    await widget.onAdd("https://raw.githubusercontent.com/wgh136/pica_configs/master/${json![index]["fileName"]}");
+                    setState(() {});
+                  },
+                ),
+              );
+
+          return ListTile(
+            title: Text(json![index]["name"]),
+            subtitle: Text(json![index]["version"]),
+            trailing: action,
+          );
+        },
+      );
+    }
   }
 }

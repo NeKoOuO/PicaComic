@@ -7,6 +7,9 @@ import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:pica_comic/foundation/app.dart';
 import 'package:pica_comic/network/cache_network.dart';
 import 'package:pica_comic/tools/translations.dart';
+import 'package:pointycastle/block/aes.dart';
+import 'package:pointycastle/block/modes/ecb.dart';
+import '../../foundation/cache_manager.dart';
 import '../../foundation/log.dart';
 import '../app_dio.dart';
 import '../http_client.dart';
@@ -15,7 +18,7 @@ import 'jm_image.dart';
 import 'jm_models.dart';
 import '../res.dart';
 import 'package:pica_comic/views/pre_search_page.dart';
-import 'package:pointycastle/export.dart';
+import 'package:pointycastle/api.dart';
 import 'package:dio_cookie_manager/dio_cookie_manager.dart';
 import 'package:cookie_jar/cookie_jar.dart';
 import 'package:pica_comic/base.dart';
@@ -27,27 +30,22 @@ extension _CachedNetwork on CachedNetwork {
       {CacheExpiredTime expiredTime = CacheExpiredTime.short,
       CookieJar? cookieJar}) async {
     await setNetworkProxy();
-    await init();
-    var fileName = md5.convert(const Utf8Encoder().convert(url)).toString();
-    if (fileName.length > 20) {
-      fileName = fileName.substring(0, 21);
-    }
-    var file = File(path! + Platform.pathSeparator + fileName);
-    if (file.existsSync()) {
-      var time = file.lastModifiedSync();
-      if (expiredTime == CacheExpiredTime.persistent ||
-          DateTime.now().millisecondsSinceEpoch - time.millisecondsSinceEpoch <
-              expiredTime.time) {
-        return CachedNetworkRes(file.readAsStringSync(), 200, url);
-      }
+    final key = url;
+    var cache = await CacheManager().findCache(key);
+    if (cache != null) {
+      var file = File(cache);
+      return CachedNetworkRes(await file.readAsString(), 200, url);
     }
     options.responseType = ResponseType.bytes;
     var dio = logDio(options);
     if (cookieJar != null) {
       dio.interceptors.add(CookieManager(cookieJar));
     }
-    var res = await dio.get(url);
-    var body = utf8.decoder.convert(res.data);
+    var res = await dio.get<Uint8List>(url);
+    if(res.data == null){
+      throw Exception("Empty data");
+    }
+    var body = utf8.decoder.convert(res.data!);
     if (res.statusCode != 200) {
       return CachedNetworkRes(body, res.statusCode, res.realUri.toString());
     }
@@ -60,11 +58,7 @@ extension _CachedNetwork on CachedNetwork {
     }
     var decodedData = JmNetwork.convertData(data, time);
     if (expiredTime != CacheExpiredTime.no) {
-      if (file.existsSync()) {
-        file.deleteSync();
-      }
-      file.createSync();
-      file.writeAsStringSync(decodedData);
+      await CacheManager().writeCache(key, res.data!, expiredTime.time);
     }
     return CachedNetworkRes(decodedData, res.statusCode, res.realUri.toString());
   }
@@ -600,6 +594,9 @@ class JmNetwork {
     var res = await get("$baseUrl/album?comicName=&id=$id",
         expiredTime: CacheExpiredTime.no);
     if (res.error) {
+      if(res.errorMessage!.contains("Empty data")){
+        throw Exception("漫畫不存在: id = $id");
+      }
       return Res(null, errorMessage: res.errorMessage);
     }
     try {
@@ -608,11 +605,11 @@ class JmNetwork {
         author.add(s);
       }
       var series = <int, String>{};
-      for (var s in res.data["series"] ?? []) {
-        series[int.parse(s["sort"])] = s["id"];
-      }
       var epNames = <String>[];
+      int sort = 1;
       for (var s in res.data["series"] ?? []) {
+        series[sort] = s["id"];
+        sort++;
         var name = s["name"] as String;
         if (name.isEmpty) {
           name = "第${s["sort"]}話";

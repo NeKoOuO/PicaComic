@@ -37,7 +37,7 @@ extension ImageExt on ComicReadingPage {
         scrollController: logic.scrollController,
         scrollBehavior: const MaterialScrollBehavior()
             .copyWith(scrollbars: false, dragDevices: _kTouchLikeDeviceTypes),
-        physics: (logic.noScroll || logic.isCtrlPressed || (logic.mouseScroll && !App.isMacOS))
+        physics: (logic.noScroll || logic.isCtrlPressed)
             ? const NeverScrollableScrollPhysics()
             : const ClampingScrollPhysics(),
         itemBuilder: (context, index) {
@@ -64,8 +64,13 @@ extension ImageExt on ComicReadingPage {
       );
     }
 
+    final decoration = BoxDecoration(
+      color: useDarkBackground ? Colors.black : Theme.of(context).colorScheme.surface,
+    );
+
     Widget buildType123() {
       return PhotoViewGallery.builder(
+        backgroundDecoration: decoration,
         key: Key(logic.readingMethod.index.toString()),
         reverse: appdata.settings[9] == "2",
         scrollDirection:
@@ -170,20 +175,15 @@ extension ImageExt on ComicReadingPage {
             ),
           ),
         ),
-        backgroundDecoration: const BoxDecoration(color: Colors.black),
         onPageChanged: (i) {
           if (i == 0) {
-            if (type == ReadingType.ehentai ||
-                type == ReadingType.hitomi ||
-                type == ReadingType.nhentai) {
+            if (!logic.data.hasEp) {
               logic.pageController.animatedJumpToPage(1);
               return;
             }
             logic.jumpToLastChapter();
           } else if (i == logic.urls.length + 1) {
-            if (type == ReadingType.ehentai ||
-                type == ReadingType.hitomi ||
-                type == ReadingType.nhentai) {
+            if (!logic.data.hasEp) {
               logic.pageController.animatedJumpToPage(i - 1);
               return;
             }
@@ -199,6 +199,7 @@ extension ImageExt on ComicReadingPage {
     Widget buildType56() {
       return PhotoViewGallery.builder(
         key: Key(logic.readingMethod.index.toString()),
+        backgroundDecoration: decoration,
         itemCount: (logic.urls.length / 2).ceil() + 2,
         reverse: logic.readingMethod == ReadingMethod.twoPageReversed,
         builder: (BuildContext context, int index) {
@@ -257,20 +258,15 @@ extension ImageExt on ComicReadingPage {
               ));
         },
         pageController: logic.pageController,
-        backgroundDecoration: const BoxDecoration(color: Colors.black),
         onPageChanged: (i) {
           if (i == 0) {
-            if (type == ReadingType.ehentai ||
-                type == ReadingType.hitomi ||
-                type == ReadingType.nhentai) {
+            if (!logic.data.hasEp) {
               logic.pageController.animatedJumpToPage(1);
               return;
             }
             logic.jumpToLastChapter();
           } else if (i == (logic.urls.length / 2).ceil() + 1) {
-            if (type == ReadingType.ehentai ||
-                type == ReadingType.hitomi ||
-                type == ReadingType.nhentai) {
+            if (!logic.data.hasEp) {
               logic.pageController.animatedJumpToPage(i - 1);
               return;
             }
@@ -290,6 +286,7 @@ extension ImageExt on ComicReadingPage {
     } else if (appdata.settings[9] == "4") {
       logic.photoViewControllers[0] ??= PhotoViewController();
       body = PhotoView.customChild(
+          backgroundDecoration: decoration,
           key: Key(logic.order.toString()),
           minScale: 1.0,
           maxScale: 2.5,

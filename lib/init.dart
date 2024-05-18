@@ -4,6 +4,7 @@ import 'package:app_links/app_links.dart';
 import 'package:cookie_jar/cookie_jar.dart';
 import 'package:pica_comic/comic_source/comic_source.dart';
 import 'package:pica_comic/foundation/history.dart';
+import 'package:pica_comic/foundation/js_engine.dart';
 import 'package:pica_comic/foundation/local_favorites.dart';
 import 'package:pica_comic/foundation/log.dart';
 import 'package:pica_comic/network/cookie_jar.dart';
@@ -12,6 +13,7 @@ import 'package:pica_comic/network/jm_network/jm_network.dart';
 import 'package:pica_comic/tools/app_links.dart';
 import 'package:pica_comic/tools/background_service.dart';
 import 'package:pica_comic/tools/cache_auto_clear.dart';
+import 'package:pica_comic/tools/io_extensions.dart';
 import 'package:pica_comic/tools/io_tools.dart';
 import 'package:pica_comic/tools/translations.dart';
 import 'package:workmanager/workmanager.dart';
@@ -22,8 +24,8 @@ import 'network/nhentai_network/nhentai_main_network.dart';
 Future<void> init() async{
   try {
     LogManager.addLog(LogLevel.info, "App Status", "Start initialization.");
-    await appdata.readData();
     await App.init();
+    await appdata.readData();
     SingleInstanceCookieJar("${App.dataPath}/cookies.db");
     HttpProxyServer.createConfigFile();
     if(appdata.settings[58] == "1"){
@@ -43,6 +45,8 @@ Future<void> init() async{
     }
     await checkDownloadPath();
     await _checkOldData();
+
+    await JsEngine().init();
 
     await ComicSource.init();
 
@@ -126,6 +130,16 @@ Future<void> _checkOldData() async{
         io.Directory("${App.dataPath}/comic_source/cookies").deleteSync(
             recursive: true);
       }
+    }
+
+    if(io.File("${App.dataPath}/cache.json").existsSync()){
+      io.File("${App.dataPath}/cache.json").deleteIgnoreError();
+    }
+    if(io.Directory("${App.cachePath}/imageCache").existsSync()){
+      io.Directory("${App.cachePath}/imageCache").deleteIgnoreError(recursive: true);
+    }
+    if(io.Directory("${App.cachePath}/cachedNetwork").existsSync()){
+      io.Directory("${App.cachePath}/cachedNetwork").deleteIgnoreError(recursive: true);
     }
   }
   catch(e, s){

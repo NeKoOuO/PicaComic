@@ -1,5 +1,6 @@
 library pica_settings;
 
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:dio/dio.dart';
@@ -11,6 +12,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_displaymode/flutter_displaymode.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:pica_comic/base.dart';
+import 'package:pica_comic/foundation/cache_manager.dart';
 import 'package:pica_comic/foundation/ui_mode.dart';
 import 'package:pica_comic/main.dart';
 import 'package:pica_comic/network/app_dio.dart';
@@ -453,38 +455,22 @@ class _NewSettingsPageState extends State<NewSettingsPage> implements PopEntry{
             trailing: const Icon(Icons.arrow_right),
             onTap: () => setDownloadFolder(),
           ),
-        StateBuilder<CalculateCacheLogic>(
-            init: CalculateCacheLogic(),
-            builder: (logic) {
-              if (logic.calculating) {
-                logic.get();
-                return ListTile(
-                  leading: const Icon(Icons.storage),
-                  title: Text("缓存大小".tl),
-                  subtitle: Text("计算中".tl),
-                  onTap: () {},
-                );
-              } else {
-                return ListTile(
-                  leading: const Icon(Icons.storage),
-                  title: Text("清除缓存".tl),
-                  subtitle: Text(
-                      "${logic.size == double.infinity ? "未知" : logic.size.toStringAsFixed(2)} MB"),
-                  onTap: () {
-                    showConfirmDialog(context, "清除缓存".tl, "确认清除缓存?".tl, () {
-                      eraseCache();
-                      logic.size = 0;
-                      logic.update();
-                    });
-                  },
-                );
-              }
-            }),
         ListTile(
-          leading: const Icon(Icons.chrome_reader_mode),
-          title: Text("缓存限制".tl),
-          trailing: const Icon(Icons.arrow_right),
-          onTap: () => setCacheLimit(context),
+          leading: const Icon(Icons.storage),
+          title: Text("缓存大小".tl),
+          subtitle: Text(bytesLengthToReadableSize(CacheManager().currentSize)),
+          onTap: () {},
+        ),
+        ListTile(
+          leading: const Icon(Icons.delete),
+          title: Text("清除缓存".tl),
+          onTap: () {
+            CacheManager().clear().then((value) {
+              if(mounted) {
+                setState(() {});
+              }
+            });
+          },
         ),
         ListTile(
           leading: const Icon(Icons.delete),
@@ -631,7 +617,7 @@ class _NewSettingsPageState extends State<NewSettingsPage> implements PopEntry{
         ListTile(
           leading: const Icon(Icons.support_outlined),
           title: Text("支持开发".tl),
-          onTap: () => launchUrlString("https://wgh136.github.io/post/1",
+          onTap: () => launchUrlString("https://note.wgh136.xyz/m/KG96QMR9sgubST82TeLTA8",
               mode: LaunchMode.externalApplication),
           trailing: const Icon(Icons.arrow_right),
         ),

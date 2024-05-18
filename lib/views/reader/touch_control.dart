@@ -223,7 +223,7 @@ class TapController {
     }
 
     if (_tapOffset != null) {
-      var distance = detail.position.dy - _tapOffset!.dy;
+      var distance = (detail.position - _tapOffset!).distanceSquared;
       if (distance > _kMaxTapOffset || distance < -_kMaxTapOffset) {
         return;
       }
@@ -329,7 +329,9 @@ class TapController {
         StateController.findOrNull<WindowFrameController>()?.resetTheme();
       } else {
         SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersive);
-        StateController.findOrNull<WindowFrameController>()?.setDarkTheme();
+        if(appdata.settings[81] == "1") {
+          StateController.findOrNull<WindowFrameController>()?.setDarkTheme();
+        }
       }
     }
   }

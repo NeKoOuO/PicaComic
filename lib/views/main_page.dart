@@ -28,6 +28,28 @@ import 'me_page.dart';
 import 'package:pica_comic/network/picacg_network/methods.dart';
 import 'package:pica_comic/views/widgets/show_message.dart';
 
+void checkClipboard() async{
+  if(appdata.settings[61] == "0"){
+    return;
+  }
+  var data = await Clipboard.getData(Clipboard.kTextPlain);
+  if(data?.text != null && canHandle(data!.text!)){
+    await Future.delayed(const Duration(milliseconds: 200));
+    showMessage(
+        App.globalContext,
+        "${"发现剪切板中的链接".tl}\n${data.text}",
+        time: 5,
+        action: TextButton(
+          child: Text("打开".tl, style: TextStyle(
+              color: App.colors(App.globalContext!).onInverseSurface),),
+          onPressed: (){
+            hideMessage(App.globalContext);
+            handleAppLinks(Uri.parse(data.text!));
+          },
+        ));
+  }
+}
+
 class Destination {
   const Destination(this.label, this.icon, this.selectedIcon);
 
@@ -157,6 +179,10 @@ class _MainPageState extends State<MainPage> {
         }
       });
     }
+
+    if (appdata.settings[80] == "1") {
+      ComicSourceSettings.checkCustomComicSourceUpdate();
+    }
   }
 
   void checkDownload() {
@@ -221,31 +247,9 @@ class _MainPageState extends State<MainPage> {
     MainPage.toExplorePage = () => setState(() => i = 2);
 
     Future.delayed(const Duration(milliseconds: 300),
-            () => Webdav.syncData()).then(checkClipboard);
+            () => Webdav.syncData()).then((v) => checkClipboard());
 
     super.initState();
-  }
-
-  void checkClipboard(v) async{
-    if(appdata.settings[61] == "0"){
-      return;
-    }
-    var data = await Clipboard.getData(Clipboard.kTextPlain);
-    if(data?.text != null && canHandle(data!.text!)){
-      await Future.delayed(const Duration(milliseconds: 200));
-      showMessage(
-        App.globalContext,
-        "${"发现剪切板中的链接".tl}\n${data.text}",
-        time: 5,
-        action: TextButton(
-          child: Text("打开".tl, style: TextStyle(
-              color: App.colors(App.globalContext!).onInverseSurface),),
-          onPressed: (){
-            hideMessage(App.globalContext);
-            handleAppLinks(Uri.parse(data.text!));
-          },
-        ));
-    }
   }
 
   @override
@@ -276,80 +280,84 @@ class _MainPageState extends State<MainPage> {
                     SizedBox(
                       height: MediaQuery.of(context).padding.top,
                     ),
-                  Expanded(
-                    child: ClipRect(
-                      child: Navigator(
-                        key: (MainPage.navigatorKey ??
-                            (MainPage.navigatorKey = GlobalKey())),
-                        onGenerateRoute: (settings) =>
-                            AppPageRoute(preventRebuild: false, builder: (context) {
-                          return Column(
-                            children: [
-                              if (UiMode.m1(context))
-                                AppBar(
-                                  title: Text(titles[i]),
-                                  notificationPredicate: (notifications) =>
-                                      notifications.context?.widget is MePage,
-                                  actions: [
-                                    Tooltip(
-                                      message: "搜索".tl,
-                                      child: IconButton(
-                                          icon: const Icon(Icons.search),
-                                          onPressed: () => MainPage.to(
-                                              () => PreSearchPage())),
-                                    ),
-                                    Tooltip(
-                                      message: "设置".tl,
-                                      child: IconButton(
-                                        icon: const Icon(Icons.settings),
-                                        onPressed: () => NewSettingsPage.open(),
+                  MediaQuery.removePadding(
+                    context: context,
+                    removeTop: !UiMode.m1(context),
+                    child: Expanded(
+                      child: ClipRect(
+                        child: Navigator(
+                          key: (MainPage.navigatorKey ??
+                              (MainPage.navigatorKey = GlobalKey())),
+                          onGenerateRoute: (settings) =>
+                              AppPageRoute(preventRebuild: false, builder: (context) {
+                                return Column(
+                                  children: [
+                                    if (UiMode.m1(context))
+                                      AppBar(
+                                        title: Text(titles[i]),
+                                        notificationPredicate: (notifications) =>
+                                        notifications.context?.widget is MePage,
+                                        actions: [
+                                          Tooltip(
+                                            message: "搜索".tl,
+                                            child: IconButton(
+                                                icon: const Icon(Icons.search),
+                                                onPressed: () => MainPage.to(
+                                                        () => PreSearchPage())),
+                                          ),
+                                          Tooltip(
+                                            message: "设置".tl,
+                                            child: IconButton(
+                                              icon: const Icon(Icons.settings),
+                                              onPressed: () => NewSettingsPage.open(),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    Expanded(
+                                      child: AnimatedSwitcher(
+                                        duration: const Duration(milliseconds: 120),
+                                        reverseDuration: const Duration(milliseconds: 120),
+                                        child: pages[i],
                                       ),
                                     ),
+                                    if (UiMode.m1(context))
+                                      CustomNavigationBar(
+                                        onDestinationSelected: (int index) {
+                                          setState(() {
+                                            i = index;
+                                          });
+                                        },
+                                        selectedIndex: i,
+                                        destinations: <NavigationItemData>[
+                                          NavigationItemData(
+                                            icon: const Icon(Icons.person_outlined),
+                                            selectedIcon: const Icon(Icons.person),
+                                            label: '我'.tl,
+                                          ),
+                                          NavigationItemData(
+                                            icon: const Icon(Icons.local_activity_outlined),
+                                            selectedIcon: const Icon(Icons.local_activity),
+                                            label: '收藏'.tl,
+                                          ),
+                                          NavigationItemData(
+                                            icon: const Icon(Icons.explore_outlined),
+                                            selectedIcon: const Icon(Icons.explore),
+                                            label: '探索'.tl,
+                                          ),
+                                          NavigationItemData(
+                                            icon: const Icon(
+                                                Icons.account_tree_outlined),
+                                            selectedIcon:
+                                            const Icon(Icons.account_tree),
+                                            label: '分类'.tl,
+                                          ),
+                                        ],
+                                      )
                                   ],
-                                ),
-                              Expanded(
-                                child: AnimatedSwitcher(
-                                  duration: const Duration(milliseconds: 120),
-                                  reverseDuration: const Duration(milliseconds: 120),
-                                  child: pages[i],
-                                ),
-                              ),
-                              if (UiMode.m1(context))
-                                CustomNavigationBar(
-                                  onDestinationSelected: (int index) {
-                                    setState(() {
-                                      i = index;
-                                    });
-                                  },
-                                  selectedIndex: i,
-                                  destinations: <NavigationItemData>[
-                                    NavigationItemData(
-                                      icon: const Icon(Icons.person_outlined),
-                                      selectedIcon: const Icon(Icons.person),
-                                      label: '我'.tl,
-                                    ),
-                                    NavigationItemData(
-                                      icon: const Icon(Icons.local_activity_outlined),
-                                      selectedIcon: const Icon(Icons.local_activity),
-                                      label: '收藏'.tl,
-                                    ),
-                                    NavigationItemData(
-                                      icon: const Icon(Icons.explore_outlined),
-                                      selectedIcon: const Icon(Icons.explore),
-                                      label: '探索'.tl,
-                                    ),
-                                    NavigationItemData(
-                                      icon: const Icon(
-                                          Icons.account_tree_outlined),
-                                      selectedIcon:
-                                          const Icon(Icons.account_tree),
-                                      label: '分类'.tl,
-                                    ),
-                                  ],
-                                )
-                            ],
-                          );
-                        }),
+                                );
+                              }),
+                        ),
                       ),
                     ),
                   )

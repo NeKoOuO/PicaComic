@@ -295,7 +295,7 @@ extension ToolBar on ComicReadingPage {
                         comicReadingPageLogic.jumpToLastPage();
                     }
                   },
-                  iconSize: 50,
+                  iconSize: 36,
                 ),
               ),
             if (appdata.settings[9] != "4" &&
@@ -318,7 +318,7 @@ extension ToolBar on ComicReadingPage {
                         comicReadingPageLogic.jumpToNextPage();
                     }
                   },
-                  iconSize: 50,
+                  iconSize: 36,
                 ),
               ),
             Positioned(
@@ -416,6 +416,22 @@ extension ToolBar on ComicReadingPage {
   ///显示当前的章节和页面位置
   Widget buildPageInfoText(
       ComicReadingPageLogic comicReadingPageLogic, BuildContext context) {
+    TextStyle style = const TextStyle();
+
+    if(!comicReadingPageLogic.tools) {
+      style = TextStyle(
+        color: useDarkBackground
+          ? Colors.white
+          : null,
+        foreground: Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 0.6
+          ..color = (useDarkBackground || Theme.of(context).brightness == Brightness.dark)
+              ? Colors.black
+              : Colors.white,
+      );
+    }
+
     return Positioned(
       bottom: 13,
       left: 25,
@@ -431,17 +447,11 @@ extension ToolBar on ComicReadingPage {
           return readingData.hasEp
               ? Text(
             "$epName : ${comicReadingPageLogic.index}/${comicReadingPageLogic.urls.length}",
-            style: TextStyle(
-                color: comicReadingPageLogic.tools
-                    ? Theme.of(context).colorScheme.onSurface
-                    : Colors.white),
+            style: style,
           )
               : Text(
             "${comicReadingPageLogic.index}/${comicReadingPageLogic.urls.length}",
-            style: TextStyle(
-                color: comicReadingPageLogic.tools
-                    ? Theme.of(context).colorScheme.onSurface
-                    : Colors.white),
+            style: style,
           );
         },
       ),

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:pica_comic/foundation/app.dart';
 import 'package:pica_comic/foundation/image_loader/cached_image.dart';
+import 'package:pica_comic/tools/extensions.dart';
+import 'package:pica_comic/views/show_image_page.dart';
 import 'package:pica_comic/views/widgets/animated_image.dart';
-import 'package:pica_comic/views/widgets/show_user_info.dart';
 import '../../base.dart';
 
 class Avatar extends StatelessWidget {
@@ -25,10 +27,16 @@ class Avatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    var avatarUrl = this.avatarUrl;
+    if(avatarUrl != null && !avatarUrl.isURL){
+      avatarUrl = null;
+    }
     return GestureDetector(
       onTap: () {
         if (couldBeShown) {
           showUserInfo(context, avatarUrl, frame, name, slogan, level);
+        } else if(avatarUrl != null && avatarUrl != "DEFAULT AVATAR URL"){
+          App.globalTo(() => ShowImagePageWithHero(avatarUrl!, "avatar"));
         }
       },
       child: Container(
@@ -56,7 +64,7 @@ class Avatar extends StatelessWidget {
                         fit: BoxFit.cover,
                       )
                     : AnimatedImage(
-                        image: CachedImageProvider(avatarUrl!,
+                        image: CachedImageProvider(avatarUrl,
                             headers: {"User-Agent": webUA}),
                         fit: BoxFit.cover,
                         filterQuality: FilterQuality.medium),
@@ -75,4 +83,29 @@ class Avatar extends StatelessWidget {
       ),
     );
   }
+}
+
+void showUserInfo(BuildContext context, String? avatarUrl, String? frameUrl, String name, String? slogan, int level){
+  showDialog(context: context, builder: (dialogContext){
+    return SimpleDialog(
+      contentPadding: const EdgeInsets.all(20),
+      children: [
+        Align(
+          alignment: Alignment.center,
+          child: Column(
+            children: [
+              Avatar(size: 80, avatarUrl: avatarUrl, frame: frameUrl,),
+              Text(name,style: const TextStyle(fontSize: 16,fontWeight: FontWeight.w600),),
+              Text("Lv${level.toString()}"),
+              const SizedBox(height: 10,width: 0,),
+              SizedBox(width: 400,child: Align(
+                alignment: Alignment.center,
+                child: Text(slogan??""),
+              ),)
+            ],
+          ),
+        )
+      ],
+    );
+  });
 }

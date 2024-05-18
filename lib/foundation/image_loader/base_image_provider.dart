@@ -4,6 +4,8 @@ import 'dart:ui' as ui show Codec;
 import 'dart:ui';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:pica_comic/foundation/cache_manager.dart';
+import 'package:pica_comic/foundation/image_manager.dart';
 
 abstract class BaseImageProvider<T extends BaseImageProvider<T>>
     extends ImageProvider<T> {
@@ -49,7 +51,7 @@ abstract class BaseImageProvider<T extends BaseImageProvider<T>>
           if (e.toString().contains("Your IP address")) {
             rethrow;
           }
-          if (e.toString().contains("404") || e.toString().contains("403")) {
+          if (e is BadRequestException) {
             rethrow;
           }
           if (e.toString().contains("handshake")) {
@@ -58,19 +60,28 @@ abstract class BaseImageProvider<T extends BaseImageProvider<T>>
             }
           }
           retryTime <<= 1;
-          if (retryTime > (2 << 4) || stop) {
+          if (retryTime > (2 << 3) || stop) {
             rethrow;
           }
           await Future.delayed(Duration(seconds: retryTime));
         }
       }
 
+      if(stop) {
+        throw Exception("Image loading is stopped");
+      }
+
+      if(data!.isEmpty) {
+        throw Exception("Empty image data");
+      }
+
       try {
-        final buffer = await ImmutableBuffer.fromUint8List(data!);
+        final buffer = await ImmutableBuffer.fromUint8List(data);
         return await decode(buffer);
       } catch (e) {
+        await CacheManager().delete(this.key);
         Object error = e;
-        if (data!.length < 200) { 
+        if (data.length < 200) { 
           // data is too short, it's likely that the data is text, not image
           try {
             var text = utf8.decoder.convert(data);
